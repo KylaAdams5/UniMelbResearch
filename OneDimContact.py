@@ -15,8 +15,11 @@
 
 ##############################################################
 import numpy as np
+import time
+t0 = time.time()
 from OneDimPotential import OneDimPotential
 from OneDimHarmonicTrap import OneDimHarmonicTrap
+from OneDimEnergy import OneDimEnergy
 
 # Initial physical parameters
 
@@ -31,7 +34,7 @@ U0 = 2*N*a;             # scattering coupling constant
 
 # Evaluation setup
 
-Nz = 256;            # grid size, of form 2^n for increased fft efficiency
+Nz = 255;            # grid size, of form 2^n for increased fft efficiency
 dz = 0.05;            # finite difference size
 enorm = 1.0;          # energy normalisation
 z = np.zeros(Nz)
@@ -53,11 +56,18 @@ for j in range(Nz):
 # Imaginary time algorithm
 
 delt = -1j * 1e-4 #imaginary time step
-error = 2e-9 # error threshold for energy convergence
+error = 1e-9 # error threshold for energy convergence
 max_iteration_t = 1e8 # max number of interactions
 it_flag = 0 # initialise condition
-it = 1 #initial iteration counter
+it = 0 #initial iteration counter
 diff = 1/(2*dz*dz) # gradient approx
+
+EK = np.zeros(1)
+EV = np.zeros(1)
+EC = np.zeros(1)
+ET = np.zeros(1)
+converge = np.zeros(1)
+print(EK)
 
 while it_flag == 0:
     k1 = np.zeros(Nz)
@@ -137,15 +147,51 @@ while it_flag == 0:
 
     T0 = 1+U0*Psi*np.conj(Psi)
     T4 = -w**2
-    S = np.zeros(Nz)
+    S = np.zeros(Nz, dtype = complex)
+    a =[]
     for j in range(Nz):
         r = np.roots([T4,0,0,0,T0[j]])
-        s = (r[(np.real(r)>0) & (np.imag(r)==0)])
-        a = []
-        if a == s:
-            S[j] = Sigma[j]
+        # print(r)
+        s = r[(np.real(r) > 0) & (np.imag(r)==0)]
+        s = np.array(s, dtype = float)
+        # print((s))
+
+        if s != a:
+            S[j] = s
         else:
-            S[j] = s #ERROR
+            S[j] = Sigma[j]
+
 
     Sigma = S
-    it_flag = 1
+
+    ##### Calculating the energy
+    V = 1j*delt*OneDimPotential(TrapPotential, Psi, Sigma, w, U0)
+
+
+    EK[it], EV[it], EC[it] = OneDimEnergy(V, Psi, dz, enorm, U0, Sigma, w, TrapPotential)
+    ET[it] = EK[it] + EV[it] + EC[it]
+
+    EK = np.append(EK, EK[it])
+    EV = np.append(EV, EK[it])
+    EC = np.append(EC, EK[it])
+    ET = np.append(ET, EK[it])
+    converge = np.append(converge, converge[it])
+
+    if (it > 0):
+        converge[it] = np.abs((ET[it]-ET[it-1])/(ET[it]*delt*1j))
+        print("The convergence is", converge[it])
+        if (converge[it] < error):
+            it_flag = 1
+            print("Imaginary time algorithm converged")
+        if (it == max_iteration_t):
+            it_flag = 1
+            print("Imaginary-time algorithm not converged")
+
+    it = it + 1
+
+t1 = time.time()
+total = t1-t0
+print("The total code run time is:", total)
+
+
+# 626.7975707054138
