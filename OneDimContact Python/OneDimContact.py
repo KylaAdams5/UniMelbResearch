@@ -67,7 +67,7 @@ EV = np.zeros(1)
 EC = np.zeros(1)
 ET = np.zeros(1)
 converge = np.zeros(1)
-print(EK)
+# print(EK)
 
 while it_flag == 0:
     k1 = np.zeros(Nz)
@@ -126,7 +126,6 @@ while it_flag == 0:
     renorm = sum(Psi*np.conj(Psi)*dz)
     Psi = Psi*np.sqrt(1/renorm)  # normalising the wave function
 
-
     #find K4
 
     V = 1j*delt*OneDimPotential(TrapPotential, Psi,Sigma, w, U0) # referring to potential funciton
@@ -151,10 +150,8 @@ while it_flag == 0:
     a =[]
     for j in range(Nz):
         r = np.roots([T4,0,0,0,T0[j]])
-        # print(r)
         s = r[(np.real(r) > 0) & (np.imag(r)==0)]
         s = np.array(s, dtype = float)
-        # print((s))
 
         if s != a:
             S[j] = s
@@ -192,6 +189,9 @@ while it_flag == 0:
 t1 = time.time()
 total = t1-t0
 print("The total code run time is:", total)
+
+
+plt.plot()
 
 
 # 626.7975707054138
